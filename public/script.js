@@ -1,8 +1,8 @@
 const socket = io();
 
-// UI Elements
 const lobbyScreen = document.getElementById('lobby-screen');
 const radioScreen = document.getElementById('radio-screen');
+const usernameInput = document.getElementById('username-input');
 const joinCodeInput = document.getElementById('join-code-input');
 const pttBtn = document.getElementById('ptt-btn');
 const pttText = document.getElementById('ptt-text');
@@ -10,12 +10,10 @@ const roomIdBanner = document.getElementById('room-id-banner');
 const playerList = document.getElementById('player-list');
 const audioContainer = document.getElementById('audio-container');
 
-// App State
 let localStream = null;
 let currentRoomCode = null;
 let isTransmitting = false;
 
-// MESH NETWORK STATE
 const peers = {}; 
 const clonedTracks = {}; 
 
@@ -28,10 +26,15 @@ const rtcConfig = {
 
 // --- ROOM ACCESS ---
 
-document.getElementById('create-btn').addEventListener('click', () => socket.emit('createRoom'));
+document.getElementById('create-btn').addEventListener('click', () => {
+    const name = usernameInput.value.trim() || 'Host';
+    socket.emit('createRoom', name);
+});
+
 document.getElementById('join-btn').addEventListener('click', () => {
     const code = joinCodeInput.value.trim().toUpperCase();
-    if (code.length === 4) socket.emit('joinRoom', code);
+    const name = usernameInput.value.trim() || 'Friend';
+    if (code.length === 4) socket.emit('joinRoom', { code, name });
 });
 
 socket.on('roomCreated', (code) => enterRoom(code));
@@ -44,30 +47,32 @@ async function enterRoom(code) {
     radioScreen.style.display = 'flex';
     roomIdBanner.innerText = `GROUP CODE: ${code}`;
     
-    // Add yourself to the top of the friends list
-    addPlayerToUI('Me (You)', true);
+    // Add yourself to the top of the list with your real name
+    const myName = usernameInput.value.trim() || 'Me';
+    addPlayerToUI('Me (You)', true, myName);
 
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
-        alert("Microphone access is required to use the walkie-talkie.");
+        alert("Microphone access is required.");
     }
 }
 
 // --- NETWORK SIGNALING ---
 
-socket.on('currentPlayers', (players) => {
-    players.forEach(id => {
+socket.on('currentPlayers', (playersDictionary) => {
+    // Loop through the dictionary of real names
+    for (const [id, realName] of Object.entries(playersDictionary)) {
         if (id !== socket.id) {
-            addPlayerToUI(id, false);
+            addPlayerToUI(id, false, realName);
             createPeerConnection(id, true);
         }
-    });
+    }
 });
 
-socket.on('newPlayerJoined', (id) => {
-    addPlayerToUI(id, false);
-    createPeerConnection(id, false);
+socket.on('newPlayerJoined', (data) => {
+    addPlayerToUI(data.id, false, data.name);
+    createPeerConnection(data.id, false);
 });
 
 socket.on('signalData', async (data) => {
@@ -103,7 +108,6 @@ async function createPeerConnection(peerId, isInitiator) {
     const pc = new RTCPeerConnection(rtcConfig);
     peers[peerId] = pc;
 
-    // Clone your mic track explicitly for this peer tunnel
     const personalTrack = localStream.getAudioTracks()[0].clone();
     personalTrack.enabled = false; 
     clonedTracks[peerId] = personalTrack;
@@ -135,20 +139,21 @@ async function createPeerConnection(peerId, isInitiator) {
 
 // --- UI & WHISPER INJECTION ---
 
-function addPlayerToUI(id, isMe) {
+function addPlayerToUI(id, isMe, realName) {
     const div = document.createElement('div');
     div.className = 'player-item';
     div.id = isMe ? 'friend-me' : `friend-${id}`;
     
-    // Generate a random fun color for their avatar dot
     const colors = ['#34c759', '#007aff', '#ff9500', '#af52de', '#ff3b30'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const displayName = isMe ? "Me (You)" : `Friend ${id.substring(0, 4)}`;
+    
+    const displayName = isMe ? `${realName} (You)` : realName;
+    const initial = realName.charAt(0).toUpperCase();
     
     let htmlContent = `
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${randomColor}; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white;">
-                ${displayName.charAt(0)}
+                ${initial}
             </div>
             <span>${displayName}</span>
         </div>
@@ -159,14 +164,12 @@ function addPlayerToUI(id, isMe) {
     div.innerHTML = htmlContent;
     playerList.appendChild(div);
 
-    // If it's a friend (not you), attach their personal WHISPER button
     if (!isMe) {
         const rightCol = document.getElementById(`right-col-${id}`);
         const whisperBtn = document.createElement('button');
         whisperBtn.className = 'private-ptt-btn';
         whisperBtn.innerText = 'WHISPER';
 
-        // Bind touch and mouse events for whispering
         whisperBtn.addEventListener('mousedown', () => startWhisper(id, whisperBtn));
         whisperBtn.addEventListener('mouseup', () => stopWhisper(id, whisperBtn));
         whisperBtn.addEventListener('mouseleave', () => stopWhisper(id, whisperBtn));
@@ -178,18 +181,16 @@ function addPlayerToUI(id, isMe) {
     }
 }
 
-// --- GLOBAL PUSH TO TALK ---
+// --- PUSH TO TALK ---
+let activeWhisperTarget = null;
 
 function startTransmission() {
     if (!localStream || isTransmitting || activeWhisperTarget) return;
     isTransmitting = true;
-
-    // Unmute mic for everyone in the group
     for (let id in clonedTracks) clonedTracks[id].enabled = true;
 
     pttBtn.classList.add('transmitting');
     pttText.innerText = "TRANSMITTING";
-    
     document.getElementById('friend-me').classList.add('receiving-audio');
     socket.emit('audioActive', { targetId: 'all', active: true });
 }
@@ -197,52 +198,34 @@ function startTransmission() {
 function stopTransmission() {
     if (!isTransmitting) return;
     isTransmitting = false;
-
-    // Mute mic for everyone
     for (let id in clonedTracks) clonedTracks[id].enabled = false;
 
     pttBtn.classList.remove('transmitting');
     pttText.innerText = "HOLD TO SPEAK";
-    
     document.getElementById('friend-me').classList.remove('receiving-audio');
     socket.emit('audioActive', { targetId: 'all', active: false });
 }
 
-// --- WHISPER PUSH TO TALK ---
-
-let activeWhisperTarget = null;
-
 function startWhisper(targetId, btnElement) {
     if (!localStream || isTransmitting || activeWhisperTarget) return;
     activeWhisperTarget = targetId;
-
-    // Unmute ONLY this specific friend's audio track tunnel
-    if (clonedTracks[targetId]) {
-        clonedTracks[targetId].enabled = true;
-    }
+    if (clonedTracks[targetId]) clonedTracks[targetId].enabled = true;
 
     btnElement.classList.add('active-whisper');
     btnElement.innerText = "TALKING...";
-    
     socket.emit('audioActive', { targetId: targetId, active: true });
 }
 
 function stopWhisper(targetId, btnElement) {
     if (activeWhisperTarget !== targetId) return;
     activeWhisperTarget = null;
-
-    // Mute their track again
-    if (clonedTracks[targetId]) {
-        clonedTracks[targetId].enabled = false;
-    }
+    if (clonedTracks[targetId]) clonedTracks[targetId].enabled = false;
 
     btnElement.classList.remove('active-whisper');
     btnElement.innerText = "WHISPER";
-
     socket.emit('audioActive', { targetId: targetId, active: false });
 }
 
-// Light up a friend's name when they speak (either globally or whispering to you)
 socket.on('peerAudioStatus', (data) => {
     const playerEl = document.getElementById(`friend-${data.senderId}`);
     if (playerEl) {
@@ -254,7 +237,6 @@ socket.on('peerAudioStatus', (data) => {
     }
 });
 
-// Bind Global Controls
 pttBtn.addEventListener('mousedown', startTransmission);
 pttBtn.addEventListener('mouseup', stopTransmission);
 pttBtn.addEventListener('mouseleave', stopTransmission);

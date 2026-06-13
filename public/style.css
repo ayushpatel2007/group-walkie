@@ -1,0 +1,280 @@
+:root {
+    --bg-color: #0b0c10;
+    --card-bg: #1f2833;
+    --accent-green: #45f3ff;
+    --accent-red: #ff3b30;
+    --text-color: #c5c6c7;
+    --text-muted: #66788a;
+    --border-color: #2f3b4c;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+h1 {
+    font-size: 2rem;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 30px;
+}
+
+.card {
+    width: 100%;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+input {
+    width: 100%;
+    padding: 16px;
+    background-color: #0b0c10;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+}
+
+.btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.primary-btn {
+    background-color: var(--accent-green);
+    color: #0b0c10;
+}
+
+.secondary-btn {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: #fff;
+}
+
+.divider {
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    position: relative;
+    width: 100%;
+}
+
+.code-display {
+    margin-top: 15px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent-green);
+    letter-spacing: 4px;
+}
+
+/* RADIO SCREEN & FRIENDS LIST */
+.status-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--text-muted);
+}
+
+.status-dot.connected {
+    background-color: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+}
+
+.room-banner {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 35px;
+    letter-spacing: 1px;
+}
+
+.friends-list-container {
+    width: 100%;
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.friends-list-container h3 {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.player-list {
+    background-color: #0b0c10;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.player-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.player-item:last-child {
+    border-bottom: none;
+}
+
+.player-item .indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: transparent;
+}
+
+.player-item.receiving-audio .indicator {
+    background-color: var(--accent-green);
+    box-shadow: 0 0 10px var(--accent-green);
+}
+
+/* PUSH TO TALK BUTTON */
+.ptt-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.ptt-btn {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: #111;
+    border: 4px solid var(--border-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.15s ease;
+}
+
+.ptt-inner {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid var(--border-color);
+}
+
+.ptt-btn span {
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.ptt-btn.transmitting {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 30px rgba(69, 243, 255, 0.4);
+}
+
+.ptt-btn.transmitting .ptt-inner {
+    background: var(--accent-green);
+}
+
+.ptt-btn.transmitting span {
+    color: #0b0c10;
+}
+/* WHISPER BUTTON STYLES */
+.private-ptt-btn {
+    background-color: #2c2c2e;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+.private-ptt-btn:active {
+    transform: scale(0.95);
+}
+
+.private-ptt-btn.active-whisper {
+    background-color: var(--accent-red);
+    color: #fff;
+    border-color: var(--accent-red);
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.5);
+}
+
+.friend-row-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}

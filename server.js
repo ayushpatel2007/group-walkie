@@ -4,59 +4,55 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 
-// Serve frontend files automatically from the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Server memory: Tracks active rooms and the specific socket IDs of players inside them
+// Server memory now tracks { roomCode: { players: { 'socketId': 'Username' } } }
 const activeRooms = {};
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // --- ROOM MANAGEMENT ---
-
     // 1. Host creates a room
-    socket.on('createRoom', () => {
+    socket.on('createRoom', (username) => {
         const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
         
-        // Initialize the room and add the host to the player list
-        activeRooms[roomCode] = { players: [socket.id] };
+        activeRooms[roomCode] = { players: {} };
+        // Save the host's actual name
+        activeRooms[roomCode].players[socket.id] = username || 'Host';
         
         socket.join(roomCode);
         socket.emit('roomCreated', roomCode);
-        console.log(`Room created: ${roomCode}`);
     });
 
-    // 2. Guest attempts to join a room
-    socket.on('joinRoom', (code) => {
+    // 2. Guest joins a room
+    socket.on('joinRoom', (data) => {
+        const { code, username } = data;
+
         if (activeRooms[code]) {
-            // Prevent overcrowding (Max 15 players)
-            if (activeRooms[code].players.length >= 15) {
+            // Prevent overcrowding
+            if (Object.keys(activeRooms[code].players).length >= 15) {
                 socket.emit('accessDenied', 'Group is full (Max 15).');
                 return;
             }
 
-            // Grant access and join the socket room
             socket.join(code);
             socket.emit('accessGranted', code);
             
-            // Tell the new user who is ALREADY in the room so they can connect
+            // Send the entire dictionary of current names to the new person
             socket.emit('currentPlayers', activeRooms[code].players);
             
-            // Add the new user to the list
-            activeRooms[code].players.push(socket.id);
+            // Save the new person's name
+            const finalName = username || 'Friend';
+            activeRooms[code].players[socket.id] = finalName;
             
-            // Tell everyone else in the room that a new specific person joined
-            socket.to(code).emit('newPlayerJoined', socket.id);
-            console.log(`User joined room: ${code}`);
+            // Tell everyone else the specific name of the person who just joined
+            socket.to(code).emit('newPlayerJoined', { id: socket.id, name: finalName });
         } else {
-            socket.emit('accessDenied', 'Invalid group code. Please check and try again.');
+            socket.emit('accessDenied', 'Invalid group code.');
         }
     });
 
-    // --- WEBRTC SIGNALING (MESH NETWORK) ---
-
-    // Route the peer-to-peer connection data directly to specific individuals
+    // 3. WebRTC Signaling (Mesh Network)
     socket.on('signal', (data) => {
         io.to(data.targetId).emit('signalData', {
             senderId: socket.id,
@@ -64,51 +60,31 @@ io.on('connection', (socket) => {
         });
     });
 
-    // --- AUDIO STATUS ROUTING (UI Glowing Dots) ---
-    
+    // 4. Audio Status Routing (Glowing Dots)
     socket.on('audioActive', (data) => {
-        // If they are talking to everyone (Global Button)
         if (data.targetId === 'all') {
-            // Find all rooms this socket is in and broadcast the light-up signal
             socket.rooms.forEach(room => {
-                if (room !== socket.id) { // Don't send it back to themselves
-                    socket.to(room).emit('peerAudioStatus', { 
-                        senderId: socket.id, 
-                        active: data.active 
-                    });
+                if (room !== socket.id) { 
+                    socket.to(room).emit('peerAudioStatus', { senderId: socket.id, active: data.active });
                 }
             });
-        } 
-        // If they are using the WHISPER button
-        else {
-            // Send the light-up signal ONLY to the specific person they are whispering to
-            io.to(data.targetId).emit('peerAudioStatus', { 
-                senderId: socket.id, 
-                active: data.active 
-            });
+        } else {
+            io.to(data.targetId).emit('peerAudioStatus', { senderId: socket.id, active: data.active });
         }
     });
 
-    // --- CLEANUP ---
-
+    // 5. Cleanup when someone closes the app
     socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        
-        // Find which room they were in, remove them, and notify others
         for (const roomCode in activeRooms) {
-            const players = activeRooms[roomCode].players;
-            const index = players.indexOf(socket.id);
-            
-            if (index !== -1) {
-                players.splice(index, 1); // Remove from the array
+            // If they were in this room, remove their specific name record
+            if (activeRooms[roomCode].players[socket.id]) {
+                delete activeRooms[roomCode].players[socket.id];
                 
-                // Tell the remaining group members to delete their peer connection
                 socket.to(roomCode).emit('playerLeft', socket.id);
                 
-                // If the room is empty, delete it entirely from server memory
-                if (players.length === 0) {
+                // Delete room if empty
+                if (Object.keys(activeRooms[roomCode].players).length === 0) {
                     delete activeRooms[roomCode];
-                    console.log(`Room ${roomCode} deleted (empty)`);
                 }
                 break;
             }
@@ -116,8 +92,5 @@ io.on('connection', (socket) => {
     });
 });
 
-// Start the server
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-    console.log(`Group Walkie-Talkie server is running on port ${PORT}`);
-});
+http.listen(PORT, () => console.log(`Server running on port ${PORT}`));

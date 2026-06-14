@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group Walkie</title>
+    <title>Walkie Talkie</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
+        <!-- LOBBY SCREEN -->
         <div id="lobby-screen" class="screen">
             <h1>Group Walkie</h1>
-            <p class="subtitle">Connect with your group of friends instantly.</p>
+            <p class="subtitle">Secure, private mesh communications.</p>
             
             <div class="card">
                 <div class="input-group" style="margin-bottom: 20px;">
@@ -19,17 +20,18 @@
 
                 <div class="input-group">
                     <input type="text" id="join-code-input" placeholder="ENTER 4-DIGIT CODE" maxlength="4">
+                    <!-- NEW: Password Input -->
+                    <input type="password" id="room-password" placeholder="ROOM PASSWORD (OPTIONAL)">
                     <button id="join-btn" class="btn primary-btn">Join Friends</button>
                 </div>
-                <div id="error-message" class="error-text"></div>
                 
                 <div class="divider"><span>OR</span></div>
                 
-                <button id="create-btn" class="btn secondary-btn">Create a Group Code</button>
-                <div id="room-code-display" class="code-display"></div>
+                <button id="create-btn" class="btn secondary-btn">Create Secure Group</button>
             </div>
         </div>
 
+        <!-- RADIO SCREEN -->
         <div id="radio-screen" class="screen" style="display: none;">
             <div class="status-panel">
                 <span class="status-dot connected" id="status-dot"></span>
@@ -39,8 +41,7 @@
 
             <div class="friends-list-container">
                 <h3>Friends in Room:</h3>
-                <div id="player-list" class="player-list friendly-list">
-                    </div>
+                <div id="player-list" class="player-list friendly-list"></div>
             </div>
 
             <div class="ptt-container">
@@ -49,6 +50,8 @@
                         <span id="ptt-text">HOLD TO SPEAK</span>
                     </div>
                 </button>
+                <!-- NEW: Global Emergency Button -->
+                <button id="global-emergency-btn" class="emergency-btn">🚨 GLOBAL ALERT</button>
             </div>
         </div>
     </div>

@@ -278,3 +278,57 @@ input:focus {
     align-items: center;
     gap: 12px;
 }
+/* EMERGENCY FEATURE STYLES */
+#room-password {
+    margin-top: 10px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 1rem;
+    text-align: center;
+    width: 100%;
+}
+
+.emergency-btn {
+    margin-top: 20px;
+    background-color: transparent;
+    color: var(--accent-red);
+    border: 1px solid var(--accent-red);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.emergency-btn:active {
+    background-color: var(--accent-red);
+    color: white;
+}
+
+.private-emergency-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 5px;
+    transition: transform 0.2s;
+}
+
+.private-emergency-btn:active {
+    transform: scale(0.8);
+}
+
+/* Red flashing screen animation */
+@keyframes flashRed {
+    0% { background-color: #121214; }
+    50% { background-color: #4a0000; }
+    100% { background-color: #121214; }
+}
+
+.emergency-flash {
+    animation: flashRed 0.3s infinite;
+}

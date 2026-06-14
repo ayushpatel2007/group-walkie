@@ -24,44 +24,60 @@ const rtcConfig = {
     ]
 };
 
+// --- NEW: SECURE MIC BEFORE JOINING ---
+
+async function getMicrophone() {
+    if (localStream) return true; 
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, echoCancellation: true });
+        return true;
+    } catch (err) {
+        alert("Microphone access is strictly required to use the walkie-talkie.");
+        return false;
+    }
+}
+
 // --- ROOM ACCESS ---
 
-document.getElementById('create-btn').addEventListener('click', () => {
+document.getElementById('create-btn').addEventListener('click', async () => {
+    // Force mic check first
+    const hasMic = await getMicrophone();
+    if (!hasMic) return; 
+
     const name = usernameInput.value.trim() || 'Host';
     socket.emit('createRoom', name);
 });
 
-document.getElementById('join-btn').addEventListener('click', () => {
+document.getElementById('join-btn').addEventListener('click', async () => {
     const code = joinCodeInput.value.trim().toUpperCase();
     const name = usernameInput.value.trim() || 'Friend';
-    if (code.length === 4) socket.emit('joinRoom', { code, name });
+    
+    if (code.length === 4) {
+        // Force mic check first
+        const hasMic = await getMicrophone();
+        if (!hasMic) return; 
+        
+        socket.emit('joinRoom', { code, name });
+    }
 });
 
 socket.on('roomCreated', (code) => enterRoom(code));
 socket.on('accessGranted', (code) => enterRoom(code));
 socket.on('accessDenied', (msg) => alert(msg));
 
-async function enterRoom(code) {
+function enterRoom(code) {
     currentRoomCode = code;
     lobbyScreen.style.display = 'none';
     radioScreen.style.display = 'flex';
     roomIdBanner.innerText = `GROUP CODE: ${code}`;
     
-    // Add yourself to the top of the list with your real name
     const myName = usernameInput.value.trim() || 'Me';
     addPlayerToUI('Me (You)', true, myName);
-
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err) {
-        alert("Microphone access is required.");
-    }
 }
 
 // --- NETWORK SIGNALING ---
 
 socket.on('currentPlayers', (playersDictionary) => {
-    // Loop through the dictionary of real names
     for (const [id, realName] of Object.entries(playersDictionary)) {
         if (id !== socket.id) {
             addPlayerToUI(id, false, realName);

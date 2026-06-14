@@ -24,7 +24,7 @@ const rtcConfig = {
     ]
 };
 
-// --- NEW: SECURE MIC BEFORE JOINING ---
+// --- SECURE MIC BEFORE JOINING ---
 
 async function getMicrophone() {
     if (localStream) return true; 
@@ -135,6 +135,7 @@ async function createPeerConnection(peerId, isInitiator) {
             audioEl = document.createElement('audio');
             audioEl.id = `audio-${peerId}`;
             audioEl.autoplay = true;
+            audioEl.playsInline = true; // Forces mobile browsers to play the audio
             audioContainer.appendChild(audioEl);
         }
         audioEl.srcObject = event.streams[0];
